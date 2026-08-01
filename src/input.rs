@@ -31,10 +31,10 @@ fn move_cursor(editor: &mut Editor, key: KeyCode) {
             editor.cursor_x = editor.cursor_x.saturating_add(1);
         }
         KeyCode::Up | KeyCode::Char('k') => editor.cursor_y = editor.cursor_y.saturating_sub(1),
-        KeyCode::Down | KeyCode::Char('j') if editor.cursor_y + 1 < editor.rows => {
-            editor.cursor_y = editor.cursor_y.saturating_add(1);
+        KeyCode::Down | KeyCode::Char('j') if editor.cursor_y + 1 < editor.text_rows.len() => {
+            editor.cursor_y += 1;
         }
-        KeyCode::Char('G') => editor.cursor_y = editor.rows.saturating_sub(1),
+        KeyCode::Char('G') => editor.cursor_y = editor.text_rows.len().saturating_sub(1),
         KeyCode::Char('g') if pending_g => editor.cursor_y = 0,
         KeyCode::Char('g') => editor.pending_g = true,
         KeyCode::Char('0') => editor.cursor_x = 0,

@@ -11,7 +11,8 @@ pub fn draw_rows(screen: &Editor) -> String {
     let cols = screen.cols;
 
     for row in 0..rows {
-        if let Some(text_row) = screen.text_rows.get(row as usize) {
+        let file_row = usize::from(row) + screen.row_offset;
+        if let Some(text_row) = screen.text_rows.get(file_row) {
             buffer.extend(text_row.chars.chars().take(cols as usize));
         } else if screen.text_rows.is_empty() && row == rows / 3 {
             show_home_screen(cols, &mut buffer);
@@ -27,7 +28,6 @@ pub fn draw_rows(screen: &Editor) -> String {
     buffer
 }
 
-/// Clear the screen and put the cursor a top left
 pub fn refresh_screen(screen: &Editor) -> Result<()> {
     let buffer_rows = draw_rows(screen);
     execute!(
@@ -36,7 +36,10 @@ pub fn refresh_screen(screen: &Editor) -> Result<()> {
         terminal::Clear(terminal::ClearType::All),
         cursor::MoveTo(0, 0),
         style::Print(buffer_rows),
-        cursor::MoveTo(screen.cursor_x, screen.cursor_y),
+        cursor::MoveTo(
+            screen.cursor_x,
+            (screen.cursor_y - screen.row_offset) as u16
+        ),
         cursor::Show
     )?;
 

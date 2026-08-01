@@ -14,6 +14,7 @@ fn main() -> Result<()> {
     }
 
     loop {
+        editor.scroll();
         refresh_screen(&editor)?;
 
         if process_keypress(&mut editor)? {
