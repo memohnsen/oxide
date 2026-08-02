@@ -17,7 +17,7 @@ fn main() -> Result<()> {
         editor.scroll();
         refresh_screen(&editor)?;
 
-        if process_keypress(&mut editor)? {
+        if process_keypress(&mut editor) {
             break;
         }
     }

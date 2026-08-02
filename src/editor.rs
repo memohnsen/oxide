@@ -2,6 +2,8 @@ use std::{fs, io::Result, path::Path};
 
 use crossterm::terminal;
 
+const TAB_WIDTH: usize = 4;
+
 pub struct Editor {
     pub cols: u16,
     pub rows: u16,
@@ -35,9 +37,7 @@ impl Editor {
 
         self.text_rows = contents
             .lines()
-            .map(|line| EditorRow {
-                chars: line.to_owned(),
-            })
+            .map(|line| EditorRow::new(line.to_owned()))
             .collect();
 
         Ok(())
@@ -90,19 +90,24 @@ impl Editor {
 
 pub struct EditorRow {
     pub chars: String,
-    // pub render: String,
+    pub render: String,
 }
 
-// impl EditorRow {
-//     pub fn new(chars: String) -> Self {
-//         let mut render: String::new();
-//
-//         Self {
-//             chars: ,
-//             render:
-//         }
-//     }
-// }
+impl EditorRow {
+    pub fn new(chars: String) -> Self {
+        let mut render = String::new();
+
+        for char in chars.chars() {
+            if char == '\t' {
+                render.push_str(&" ".repeat(TAB_WIDTH));
+            } else {
+                render.push(char);
+            }
+        }
+
+        Self { chars, render }
+    }
+}
 
 #[cfg(test)]
 mod tests {
@@ -125,14 +130,10 @@ mod tests {
     #[test]
     fn test_line_length() {
         let mut editor = build_app();
-        editor.text_rows = vec![EditorRow {
-            chars: "Hello, this is a test.".to_string(),
-        }];
+        editor.text_rows = vec![EditorRow::new("Hello, this is a test.".to_string())];
         assert_eq!(editor.current_row_len(), 22);
 
-        editor.text_rows = vec![EditorRow {
-            chars: String::new(),
-        }];
+        editor.text_rows = vec![EditorRow::new(String::new())];
         assert_eq!(editor.current_row_len(), 0);
     }
 
@@ -148,5 +149,21 @@ mod tests {
 
         let third_line = String::new();
         assert_eq!(editor.text_rows[2].chars, third_line);
+    }
+
+    #[test]
+    fn render_tabs() {
+        let mut editor = build_app();
+        let line = "\tabc".to_string();
+        editor.text_rows = vec![EditorRow::new(line)];
+        assert_eq!(editor.text_rows[0].render, "    abc");
+
+        let line = "\t\tabc".to_string();
+        editor.text_rows = vec![EditorRow::new(line)];
+        assert_eq!(editor.text_rows[0].render, "        abc");
+
+        let line = "\ta\tbc".to_string();
+        editor.text_rows = vec![EditorRow::new(line)];
+        assert_eq!(editor.text_rows[0].render, "    a    bc");
     }
 }

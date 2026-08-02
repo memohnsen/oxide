@@ -1,22 +1,21 @@
 use crossterm::event::{self, Event, KeyCode, KeyModifiers};
-use std::io::Result;
 
 use crate::editor::Editor;
 
-pub fn process_keypress(editor: &mut Editor) -> Result<bool> {
-    let char = event::read()?;
+pub fn process_keypress(editor: &mut Editor) -> bool {
+    let char = event::read().expect("Error: Unable to read the keypresses from your device");
     match char {
         Event::Key(key_event)
             if key_event.code == KeyCode::Char('q')
                 && key_event.modifiers.contains(KeyModifiers::CONTROL) =>
         {
-            Ok(true)
+            true
         }
         Event::Key(key_event) => {
             move_cursor(editor, key_event.code);
-            Ok(false)
+            false
         }
-        _ => Ok(false),
+        _ => false,
     }
 }
 

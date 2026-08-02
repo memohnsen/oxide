@@ -15,7 +15,7 @@ pub fn draw_rows(screen: &Editor) -> String {
         if let Some(text_row) = screen.text_rows.get(file_row) {
             buffer.extend(
                 text_row
-                    .chars
+                    .render
                     .chars()
                     .skip(screen.col_offset)
                     .take(cols as usize),
