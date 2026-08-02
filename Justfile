@@ -11,9 +11,10 @@ lint:
     cargo fmt --all -- --check
     cargo clippy --all-targets --locked -- -D warnings
 
-# Cargo fmt and test
+# Check formatting, run lints, and execute tests locally
 test:
     cargo fmt --all -- --check
+    cargo clippy --all-targets --locked -- -D warnings
     cargo test
 
 # Cargo build
@@ -28,9 +29,3 @@ audit:
 clean:
     cargo clean
     rm -rf dist
-
-# Check formatting, run lints, and execute tests locally
-check-all:
-    cargo fmt --all -- --check
-    cargo clippy --all-targets --locked -- -D warnings
-    cargo test

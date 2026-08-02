@@ -1,0 +1,44 @@
+---
+source: src/snapshots/snap.rs
+expression: output
+---
+use crossterm::{cursor, execute, style, terminal};
+use std::io::{Result, stdout};
+
+use crate::editor::Editor;
+
+const WELCOME_MESSAGE: &str = "Oxide Editor -- Version 0.1.0";
+
+pub fn draw_rows(screen: &Editor) -> String {
+    let mut buffer = String::new();
+    let rows = screen.rows;
+    let cols = screen.cols;
+
+    for row in 0..rows {
+        let file_row = usize::from(row) + screen.row_offset;
+        if let Some(text_row) = screen.text_rows.get(file_row) {
+            buffer.extend(
+                text_row
+                    .chars
+                    .chars()
+                    .skip(screen.col_offset)
+                    .take(cols as usize),
+            );
+        } else if screen.text_rows.is_empty() && row == rows / 3 {
+            show_home_screen(cols, &mut buffer);
+        } else {
+            buffer.push('~');
+        }
+
+        if row + 1 < rows {
+            buffer.push_str("\r\n");
+        }
+    }
+
+    buffer
+}
+
+pub fn refresh_screen(screen: &Editor) -> Result<()> {
+    let buffer_rows = draw_rows(screen);
+    execute!(
+        stdout(),

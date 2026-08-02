@@ -1,0 +1,44 @@
+---
+source: src/snapshots/snap.rs
+expression: output
+---
+                    .take(cols as usize),
+            );
+        } else if screen.text_rows.is_empty() && row == rows / 3 {
+            show_home_screen(cols, &mut buffer);
+        } else {
+            buffer.push('~');
+        }
+
+        if row + 1 < rows {
+            buffer.push_str("\r\n");
+        }
+    }
+
+    buffer
+}
+
+pub fn refresh_screen(screen: &Editor) -> Result<()> {
+    let buffer_rows = draw_rows(screen);
+    execute!(
+        stdout(),
+        cursor::Hide,
+        terminal::Clear(terminal::ClearType::All),
+        cursor::MoveTo(0, 0),
+        style::Print(buffer_rows),
+        cursor::MoveTo(
+            (screen.cursor_x - screen.col_offset) as u16,
+            (screen.cursor_y - screen.row_offset) as u16
+        ),
+        cursor::Show
+    )?;
+
+    Ok(())
+}
+
+fn show_home_screen(cols: u16, buffer: &mut String) {
+    let message_len = WELCOME_MESSAGE.len().min(cols as usize);
+    let mut padding = (cols as usize - message_len) / 2;
+
+    if padding > 0 {
+        buffer.push('~');
