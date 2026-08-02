@@ -3,6 +3,7 @@ use std::io::stdout;
 
 pub mod editor;
 pub mod input;
+pub mod snapshots;
 pub mod ui;
 
 pub struct CleanUp;
