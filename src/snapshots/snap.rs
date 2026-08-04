@@ -60,6 +60,16 @@ mod tests {
     }
 
     #[test]
+    fn app_renders_super_narrow() {
+        let mut editor = build_app();
+        editor.cols = 2;
+        editor.open_file(path::Path::new("test.txt")).unwrap();
+        let output = show_all_rows(&editor);
+
+        assert_snapshot!(output);
+    }
+
+    #[test]
     fn app_renders_down_screen() {
         let mut editor = build_app();
         editor.row_offset = 20;
@@ -75,6 +85,46 @@ mod tests {
         editor.open_file(path::Path::new("test.txt")).unwrap();
         editor.cursor_x = 8;
         editor.cursor_y = 10;
+        let output = show_all_rows(&editor);
+
+        assert_snapshot!(output);
+    }
+
+    #[test]
+    fn insert_mode() {
+        let mut editor = build_app();
+        editor.open_file(path::Path::new("test.txt")).unwrap();
+        editor.mode = Modes::Insert;
+        let output = show_all_rows(&editor);
+
+        assert_snapshot!(output);
+    }
+
+    #[test]
+    fn visual_mode() {
+        let mut editor = build_app();
+        editor.open_file(path::Path::new("test.txt")).unwrap();
+        editor.mode = Modes::Visual;
+        let output = show_all_rows(&editor);
+
+        assert_snapshot!(output);
+    }
+
+    #[test]
+    fn replace_mode() {
+        let mut editor = build_app();
+        editor.open_file(path::Path::new("test.txt")).unwrap();
+        editor.mode = Modes::Replace;
+        let output = show_all_rows(&editor);
+
+        assert_snapshot!(output);
+    }
+
+    #[test]
+    fn command_mode() {
+        let mut editor = build_app();
+        editor.open_file(path::Path::new("test.txt")).unwrap();
+        editor.mode = Modes::Command;
         let output = show_all_rows(&editor);
 
         assert_snapshot!(output);

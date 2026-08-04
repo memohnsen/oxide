@@ -27,7 +27,7 @@ impl Editor {
         let (screen_cols, screen_rows) = terminal::size()?;
         Ok(Self {
             cols: screen_cols,
-            rows: screen_rows.saturating_sub(1),
+            rows: screen_rows.saturating_sub(2),
             cursor_x: 0,
             cursor_y: 0,
             render_x: 0,

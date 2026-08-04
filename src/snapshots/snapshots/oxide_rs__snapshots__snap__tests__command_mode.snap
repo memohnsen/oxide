@@ -42,4 +42,4 @@ pub fn refresh_screen(screen: &Editor) -> Result<()> {
     let buffer_rows = draw_rows(screen);
     execute!(
         stdout(),
- NORMAL | test.txt | 69 lines                                                                    1:1
+ COMMAND | test.txt | 69 lines                                                                   1:1

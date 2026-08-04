@@ -38,6 +38,7 @@ pub fn draw_rows(screen: &Editor) -> String {
 pub fn refresh_screen(screen: &Editor) -> Result<()> {
     let buffer_rows = draw_rows(screen);
     let status_bar = show_status_bar(screen);
+    let command_row = String::new();
 
     execute!(
         stdout(),
@@ -48,6 +49,7 @@ pub fn refresh_screen(screen: &Editor) -> Result<()> {
         style::SetAttribute(style::Attribute::Reverse),
         style::Print(status_bar),
         style::SetAttribute(style::Attribute::Reset),
+        style::Print(command_row),
         cursor::MoveTo(
             (screen.cursor_x - screen.col_offset) as u16,
             (screen.cursor_y - screen.row_offset) as u16
@@ -61,18 +63,23 @@ pub fn refresh_screen(screen: &Editor) -> Result<()> {
 pub fn show_status_bar(screen: &Editor) -> String {
     let mut output = String::new();
 
-    let text = format!(
+    let mut left_text = format!(
         " {} | {} | {} lines",
         screen.mode,
         screen.filename.clone().unwrap_or("NO FILE".to_string()),
         screen.text_rows.len(),
     );
-    output.push_str(text.as_str());
+    let right_text = format!("{}:{}", screen.cursor_y + 1, screen.cursor_x + 1);
 
-    output.push_str(&" ".repeat((screen.cols as usize) - text.len() - 5));
+    let text_len = left_text.len() + right_text.len();
+    let left_space_available = screen.cols.saturating_sub(text_len as u16);
+    left_text.truncate(left_space_available as usize);
 
-    let location = format!("{:2}:{:2}", screen.cursor_y, screen.cursor_x);
-    output.push_str(&location);
+    let filler = " ".repeat((screen.cols as usize).saturating_sub(text_len));
+
+    output.push_str(left_text.as_str());
+    output.push_str(filler.as_str());
+    output.push_str(right_text.as_str());
 
     output
 }
