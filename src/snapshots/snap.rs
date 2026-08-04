@@ -1,9 +1,8 @@
 #[cfg(test)]
 mod tests {
-    use std::path;
-
-    use crate::{editor::Editor, ui::draw_rows};
+    use crate::{editor::Editor, modes::Modes, ui::draw_rows};
     use insta::assert_snapshot;
+    use std::path;
 
     fn build_app() -> Editor {
         Editor {
@@ -11,10 +10,12 @@ mod tests {
             rows: 40,
             cursor_y: 0,
             cursor_x: 0,
+            render_x: 0,
             pending_g: false,
             text_rows: Vec::new(),
             row_offset: 0,
             col_offset: 0,
+            mode: Modes::Normal,
         }
     }
 

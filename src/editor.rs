@@ -2,6 +2,8 @@ use std::{fs, io::Result, path::Path};
 
 use crossterm::terminal;
 
+use crate::modes::Modes;
+
 const TAB_WIDTH: usize = 4;
 
 pub struct Editor {
@@ -9,12 +11,14 @@ pub struct Editor {
     pub rows: u16,
     pub cursor_x: usize,
     pub cursor_y: usize,
+    pub render_x: usize,
     // tracks whether gg to go top of file is going to be pressed
     pub pending_g: bool,
     pub text_rows: Vec<EditorRow>,
     // which file line is at the top and edge of the screen
     pub row_offset: usize,
     pub col_offset: usize,
+    pub mode: Modes,
 }
 
 impl Editor {
@@ -25,10 +29,12 @@ impl Editor {
             rows: screen_rows,
             cursor_x: 0,
             cursor_y: 0,
+            render_x: 0,
             pending_g: false,
             text_rows: Vec::new(),
             row_offset: 0,
             col_offset: 0,
+            mode: Modes::Normal,
         })
     }
 
@@ -107,6 +113,13 @@ impl EditorRow {
 
         Self { chars, render }
     }
+
+    // pub fn render_x(&self, cursor_x: usize) -> usize {
+    //     let pos = 0;
+    //     for char in self.chars {
+    //
+    //     }
+    // }
 }
 
 #[cfg(test)]
@@ -120,10 +133,12 @@ mod tests {
             rows: 40,
             cursor_y: 0,
             cursor_x: 0,
+            render_x: 0,
             pending_g: false,
             text_rows: Vec::new(),
             row_offset: 0,
             col_offset: 0,
+            mode: Modes::Normal,
         }
     }
 

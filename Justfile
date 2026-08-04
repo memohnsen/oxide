@@ -4,18 +4,20 @@ default:
 
 # Cargo run
 run:
-    cargo run
+    cargo run -- test.txt
 
 # Cargo fmt and clippy
 lint:
     cargo fmt --all -- --check
     cargo clippy --all-targets --locked -- -D warnings
+    cargo check
 
 # Check formatting, run lints, and execute tests locally
 test:
     cargo fmt --all -- --check
     cargo clippy --all-targets --locked -- -D warnings
     cargo test
+    cargo check
 
 # Cargo build
 build:
