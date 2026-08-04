@@ -1,4 +1,4 @@
-use std::{fmt::Display, str::FromStr};
+use std::fmt::Display;
 
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub enum Modes {
@@ -24,19 +24,5 @@ impl Modes {
 impl Display for Modes {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(self.as_str())
-    }
-}
-
-impl FromStr for Modes {
-    type Err = ();
-    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
-        match s {
-            "NORMAL" => Ok(Modes::Normal),
-            "INSERT" => Ok(Modes::Insert),
-            "VISUAL" => Ok(Modes::Visual),
-            "REPLACE" => Ok(Modes::Replace),
-            "COMMAND" => Ok(Modes::Command),
-            _ => Err(()),
-        }
     }
 }

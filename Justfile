@@ -31,3 +31,7 @@ audit:
 clean:
     cargo clean
     rm -rf dist
+
+# Cargo insta review screenshots\
+review:
+    cargo insta review

@@ -126,6 +126,7 @@ mod tests {
             col_offset: 0,
             mode: Modes::Normal,
             filename: None,
+            status_message: None,
         }
     }
 

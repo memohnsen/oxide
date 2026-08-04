@@ -1,5 +1,8 @@
 use crossterm::{cursor, execute, style, terminal};
-use std::io::{Result, stdout};
+use std::{
+    io::{Result, stdout},
+    time::Duration,
+};
 
 use crate::editor::Editor;
 
@@ -38,7 +41,7 @@ pub fn draw_rows(screen: &Editor) -> String {
 pub fn refresh_screen(screen: &Editor) -> Result<()> {
     let buffer_rows = draw_rows(screen);
     let status_bar = show_status_bar(screen);
-    let command_row = String::new();
+    let command_row = show_command_row(screen);
 
     execute!(
         stdout(),
@@ -69,19 +72,34 @@ pub fn show_status_bar(screen: &Editor) -> String {
         screen.filename.clone().unwrap_or("NO FILE".to_string()),
         screen.text_rows.len(),
     );
-    let right_text = format!("{}:{}", screen.cursor_y + 1, screen.cursor_x + 1);
+    let mut right_text = format!("{}:{}", screen.cursor_y + 1, screen.cursor_x + 1);
 
-    let text_len = left_text.len() + right_text.len();
-    let left_space_available = screen.cols.saturating_sub(text_len as u16);
+    right_text.truncate(screen.cols as usize);
+    let left_space_available = screen.cols.saturating_sub(right_text.len() as u16);
     left_text.truncate(left_space_available as usize);
 
-    let filler = " ".repeat((screen.cols as usize).saturating_sub(text_len));
+    let filler_len = screen
+        .cols
+        .saturating_sub(left_text.len() as u16 + right_text.len() as u16);
+    let filler = " ".repeat(filler_len as usize);
 
     output.push_str(left_text.as_str());
     output.push_str(filler.as_str());
     output.push_str(right_text.as_str());
 
     output
+}
+
+pub fn show_command_row(screen: &Editor) -> String {
+    if let Some(status_msg) = &screen.status_message {
+        if status_msg.created_at.elapsed() > Duration::from_secs(5) {
+            String::new()
+        } else {
+            status_msg.text.chars().take(screen.cols as usize).collect()
+        }
+    } else {
+        String::new()
+    }
 }
 
 fn show_home_screen(cols: u16, buffer: &mut String) {
@@ -98,4 +116,84 @@ fn show_home_screen(cols: u16, buffer: &mut String) {
     }
 
     buffer.push_str(&WELCOME_MESSAGE[..message_len]);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{editor::StatusMessage, modes::Modes};
+    use std::time::Instant;
+
+    fn build_app() -> Editor {
+        Editor {
+            cols: 100,
+            rows: 40,
+            cursor_y: 0,
+            cursor_x: 0,
+            render_x: 0,
+            pending_g: false,
+            text_rows: Vec::new(),
+            row_offset: 0,
+            col_offset: 0,
+            mode: Modes::Normal,
+            filename: None,
+            status_message: Some(StatusMessage {
+                text: String::from("Ctrl-q to quit"),
+                created_at: Instant::now(),
+            }),
+        }
+    }
+
+    #[test]
+    fn status_bar_string() {
+        let mut editor = build_app();
+        editor.cols = 31;
+        let status_bar = show_status_bar(&editor);
+        assert_eq!(status_bar, " NORMAL | NO FILE | 0 lines 1:1");
+
+        editor.cols = 40;
+        let status_bar = show_status_bar(&editor);
+        assert_eq!(status_bar, " NORMAL | NO FILE | 0 lines          1:1");
+
+        editor.cols = 30;
+        let status_bar = show_status_bar(&editor);
+        assert_eq!(status_bar, " NORMAL | NO FILE | 0 lines1:1");
+
+        editor.cols = 20;
+        let status_bar = show_status_bar(&editor);
+        assert_eq!(status_bar, " NORMAL | NO FILE1:1");
+
+        editor.cols = 10;
+        let status_bar = show_status_bar(&editor);
+        assert_eq!(status_bar, " NORMAL1:1");
+
+        editor.cols = 2;
+        let status_bar = show_status_bar(&editor);
+        assert_eq!(status_bar, "1:");
+    }
+
+    #[test]
+    fn command_row_string() {
+        let mut editor = build_app();
+        let status_msg = show_command_row(&editor);
+        assert_eq!(status_msg, "Ctrl-q to quit");
+
+        editor.status_message = Some(StatusMessage {
+            text: "Ctrl-q to quit".to_string(),
+            created_at: Instant::now() - Duration::from_secs(6),
+        });
+        let status_msg = show_command_row(&editor);
+        assert_eq!(status_msg, String::new());
+
+        editor.status_message = None;
+        assert_eq!(show_command_row(&editor), String::new());
+
+        editor.status_message = Some(StatusMessage {
+            text: "Ctrl-q to quit".to_string(),
+            created_at: Instant::now(),
+        });
+        editor.cols = 4;
+        let status_msg = show_command_row(&editor);
+        assert_eq!(status_msg, "Ctrl");
+    }
 }

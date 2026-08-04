@@ -21,6 +21,7 @@ mod tests {
             col_offset: 0,
             mode: Modes::Normal,
             filename: None,
+            status_message: None,
         }
     }
 
@@ -67,6 +68,7 @@ mod tests {
         let output = show_all_rows(&editor);
 
         assert_snapshot!(output);
+        assert_eq!(show_status_bar(&editor).len(), editor.cols as usize);
     }
 
     #[test]

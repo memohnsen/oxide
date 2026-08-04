@@ -1,10 +1,16 @@
-use std::{fs, io::Result, path::Path};
+use std::{fs, io::Result, path::Path, time::Instant};
 
 use crossterm::terminal;
 
 use crate::modes::Modes;
 
 const TAB_WIDTH: usize = 4;
+
+#[derive(Clone)]
+pub struct StatusMessage {
+    pub text: String,
+    pub created_at: Instant,
+}
 
 pub struct Editor {
     pub cols: u16,
@@ -20,6 +26,7 @@ pub struct Editor {
     pub col_offset: usize,
     pub mode: Modes,
     pub filename: Option<String>,
+    pub status_message: Option<StatusMessage>,
 }
 
 impl Editor {
@@ -37,6 +44,10 @@ impl Editor {
             col_offset: 0,
             mode: Modes::Normal,
             filename: None,
+            status_message: Some(StatusMessage {
+                text: "Ctrl-q to quit".to_string(),
+                created_at: Instant::now(),
+            }),
         })
     }
 
@@ -143,6 +154,7 @@ mod tests {
             col_offset: 0,
             mode: Modes::Normal,
             filename: None,
+            status_message: None,
         }
     }
 
