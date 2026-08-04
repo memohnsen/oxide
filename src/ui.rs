@@ -30,26 +30,51 @@ pub fn draw_rows(screen: &Editor) -> String {
             buffer.push_str("\r\n");
         }
     }
+    buffer.push_str("\r\n");
 
     buffer
 }
 
 pub fn refresh_screen(screen: &Editor) -> Result<()> {
     let buffer_rows = draw_rows(screen);
+    let status_bar = show_status_bar(screen);
+
     execute!(
         stdout(),
         cursor::Hide,
         terminal::Clear(terminal::ClearType::All),
         cursor::MoveTo(0, 0),
         style::Print(buffer_rows),
+        style::SetAttribute(style::Attribute::Reverse),
+        style::Print(status_bar),
+        style::SetAttribute(style::Attribute::Reset),
         cursor::MoveTo(
             (screen.cursor_x - screen.col_offset) as u16,
             (screen.cursor_y - screen.row_offset) as u16
         ),
-        cursor::Show
+        cursor::Show,
     )?;
 
     Ok(())
+}
+
+pub fn show_status_bar(screen: &Editor) -> String {
+    let mut output = String::new();
+
+    let text = format!(
+        " {} | {} | {} lines",
+        screen.mode,
+        screen.filename.clone().unwrap_or("NO FILE".to_string()),
+        screen.text_rows.len(),
+    );
+    output.push_str(text.as_str());
+
+    output.push_str(&" ".repeat((screen.cols as usize) - text.len() - 5));
+
+    let location = format!("{:2}:{:2}", screen.cursor_y, screen.cursor_x);
+    output.push_str(&location);
+
+    output
 }
 
 fn show_home_screen(cols: u16, buffer: &mut String) {

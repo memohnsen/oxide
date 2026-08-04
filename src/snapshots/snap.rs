@@ -1,6 +1,10 @@
 #[cfg(test)]
 mod tests {
-    use crate::{editor::Editor, modes::Modes, ui::draw_rows};
+    use crate::{
+        editor::Editor,
+        modes::Modes,
+        ui::{draw_rows, show_status_bar},
+    };
     use insta::assert_snapshot;
     use std::path;
 
@@ -16,13 +20,22 @@ mod tests {
             row_offset: 0,
             col_offset: 0,
             mode: Modes::Normal,
+            filename: None,
         }
+    }
+
+    fn show_all_rows(screen: &Editor) -> String {
+        let mut output = String::new();
+        output.push_str(&draw_rows(screen));
+        output.push_str(&show_status_bar(screen));
+
+        output
     }
 
     #[test]
     fn app_renders_home_screen() {
         let editor = build_app();
-        let output = draw_rows(&editor);
+        let output = show_all_rows(&editor);
 
         assert_snapshot!(output);
     }
@@ -31,7 +44,7 @@ mod tests {
     fn app_renders() {
         let mut editor = build_app();
         editor.open_file(path::Path::new("test.txt")).unwrap();
-        let output = draw_rows(&editor);
+        let output = show_all_rows(&editor);
 
         assert_snapshot!(output);
     }
@@ -41,7 +54,7 @@ mod tests {
         let mut editor = build_app();
         editor.cols = 40;
         editor.open_file(path::Path::new("test.txt")).unwrap();
-        let output = draw_rows(&editor);
+        let output = show_all_rows(&editor);
 
         assert_snapshot!(output);
     }
@@ -51,7 +64,18 @@ mod tests {
         let mut editor = build_app();
         editor.row_offset = 20;
         editor.open_file(path::Path::new("test.txt")).unwrap();
-        let output = draw_rows(&editor);
+        let output = show_all_rows(&editor);
+
+        assert_snapshot!(output);
+    }
+
+    #[test]
+    fn app_renders_cols_row_loc() {
+        let mut editor = build_app();
+        editor.open_file(path::Path::new("test.txt")).unwrap();
+        editor.cursor_x = 8;
+        editor.cursor_y = 10;
+        let output = show_all_rows(&editor);
 
         assert_snapshot!(output);
     }

@@ -42,3 +42,4 @@ fn show_home_screen(cols: u16, buffer: &mut String) {
 
     if padding > 0 {
         buffer.push('~');
+ NORMAL | test.txt | 69 lines                                                                   0: 0

@@ -19,6 +19,7 @@ pub struct Editor {
     pub row_offset: usize,
     pub col_offset: usize,
     pub mode: Modes,
+    pub filename: Option<String>,
 }
 
 impl Editor {
@@ -26,7 +27,7 @@ impl Editor {
         let (screen_cols, screen_rows) = terminal::size()?;
         Ok(Self {
             cols: screen_cols,
-            rows: screen_rows,
+            rows: screen_rows.saturating_sub(1),
             cursor_x: 0,
             cursor_y: 0,
             render_x: 0,
@@ -35,11 +36,13 @@ impl Editor {
             row_offset: 0,
             col_offset: 0,
             mode: Modes::Normal,
+            filename: None,
         })
     }
 
     pub fn open_file(&mut self, filename: &Path) -> Result<()> {
         let contents = fs::read_to_string(filename)?;
+        self.filename = Some(filename.to_str().unwrap_or("").to_owned());
 
         self.text_rows = contents
             .lines()
@@ -139,6 +142,7 @@ mod tests {
             row_offset: 0,
             col_offset: 0,
             mode: Modes::Normal,
+            filename: None,
         }
     }
 

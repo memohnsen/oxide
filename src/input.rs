@@ -125,6 +125,7 @@ mod tests {
             row_offset: 0,
             col_offset: 0,
             mode: Modes::Normal,
+            filename: None,
         }
     }
 
