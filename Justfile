@@ -35,3 +35,7 @@ clean:
 # Cargo insta review screenshots\
 review:
     cargo insta review
+
+# Run cargo test with full backtrace printed out 
+backtrace:
+    RUST_BACKTRACE=1 cargo test

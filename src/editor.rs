@@ -69,6 +69,17 @@ impl Editor {
             .map_or(0, |row| row.chars.chars().count())
     }
 
+    pub fn insert_char(&mut self, char: char) {
+        if self.text_rows.is_empty() {
+            self.text_rows
+                .append(&mut vec![EditorRow::new(String::new())]);
+        }
+
+        let row = self.cursor_y;
+        self.text_rows[row].insert_char(self.cursor_x, char);
+        self.cursor_x += 1;
+    }
+
     pub fn scroll(&mut self) {
         // VERTICAL SCROLL
         let screen_rows = usize::from(self.rows);
@@ -126,6 +137,31 @@ impl EditorRow {
         }
 
         Self { chars, render }
+    }
+
+    pub fn rerender(&mut self) {
+        let mut render = String::new();
+
+        for char in self.chars.chars() {
+            if char == '\t' {
+                render.push_str(&" ".repeat(TAB_WIDTH));
+            } else {
+                render.push(char);
+            }
+        }
+
+        self.render = render;
+    }
+
+    pub fn insert_char(&mut self, index: usize, char: char) {
+        let byte_index = self.chars.char_indices().nth(index);
+        let cursor_location = match byte_index {
+            None => self.chars.len(),
+            Some(c) => c.0,
+        };
+        String::insert(&mut self.chars, cursor_location, char);
+
+        self.rerender();
     }
 
     // pub fn render_x(&self, cursor_x: usize) -> usize {
@@ -196,5 +232,39 @@ mod tests {
         let line = "\ta\tbc".to_string();
         editor.text_rows = vec![EditorRow::new(line)];
         assert_eq!(editor.text_rows[0].render, "    a    bc");
+    }
+
+    #[test]
+    fn editor_row_inserting_text() {
+        let mut editor = build_app();
+        editor.text_rows = vec![EditorRow::new("Hello".to_string())];
+        editor.text_rows[0].insert_char(0, 'x');
+        assert_eq!(editor.text_rows[0].chars, "xHello".to_string());
+        assert_eq!(editor.text_rows[0].render, "xHello".to_string());
+        editor.text_rows[0].insert_char(3, 'x');
+        assert_eq!(editor.text_rows[0].chars, "xHexllo".to_string());
+        assert_eq!(editor.text_rows[0].render, "xHexllo".to_string());
+
+        editor.text_rows = vec![EditorRow::new("Héllo".to_string())];
+        editor.text_rows[0].insert_char(2, 'x');
+        assert_eq!(editor.text_rows[0].chars, "Héxllo".to_string());
+    }
+
+    #[test]
+    fn editor_inserting_text() {
+        let mut editor = build_app();
+        assert!(editor.text_rows.is_empty());
+
+        assert_eq!(editor.cursor_x, 0);
+        editor.insert_char('a');
+        assert_eq!(editor.text_rows[0].chars, "a");
+        assert_eq!(editor.cursor_x, 1);
+        editor.insert_char('a');
+        assert_eq!(editor.text_rows[0].chars, "aa");
+        assert_eq!(editor.cursor_x, 2);
+        editor.cursor_x = 0;
+        editor.insert_char('x');
+        assert_eq!(editor.text_rows[0].chars, "xaa");
+        assert_eq!(editor.cursor_x, 1);
     }
 }
