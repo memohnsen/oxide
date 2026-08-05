@@ -22,36 +22,6 @@ pub fn process_keypress(editor: &mut Editor) -> bool {
     }
 }
 
-/// #Available keybindings
-///
-/// ##All modes
-/// - arrow keys to move through text
-/// - ESC to return to normal mode
-/// - Ctrl-q to quit
-///
-/// ##Normal Mode
-///
-/// ###Movement
-/// - hkjl to move through text
-/// - Backspace to move back one char
-/// - Enter to move one row down
-/// - $ or gl to move to last char in row
-/// - 0 to move to start of the row
-/// - gh / _ to move to first char in row
-/// - gg to move to first row
-/// - G to move to last row
-/// - M to move to middle line of screen
-///
-/// ###Text Insertion
-/// - a to enter insert mode to the right of the cursor
-/// - A to enter insert mode at the end of the row
-/// - i to enter insert mode to the left of the cursor
-/// - I to enter insert mode to the left of the first char in the row
-///
-/// ###Modes
-/// - r / R to enter replace mode ( does nothing currently )
-/// - v / V to enter visual mode ( does nothing currently )
-///
 fn handle_keypress(editor: &mut Editor, key: KeyCode) {
     // get a local state of pending_g so we don't have to reset it on every branch
     let pending_g = editor.pending_g;

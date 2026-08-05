@@ -2,9 +2,13 @@
 default: 
     @just --choose
 
-# Cargo run
+# Run the editor opening a test file
 run:
     cargo run -- test.txt
+
+# Run the editor opening welcome screen
+welcome:
+    cargo run
 
 # Cargo fmt and clippy
 lint:
