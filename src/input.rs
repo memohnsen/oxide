@@ -33,11 +33,14 @@ pub fn process_keypress(editor: &mut Editor) -> bool {
 ///
 /// ###Movement
 /// - hkjl to move through text
+/// - Backspace to move back one char
+/// - Enter to move one row down
 /// - $ or gl to move to last char in row
 /// - 0 to move to start of the row
 /// - gh / _ to move to first char in row
 /// - gg to move to first row
 /// - G to move to last row
+/// - M to move to middle line of screen
 ///
 /// ###Text Insertion
 /// - a to enter insert mode to the right of the cursor
@@ -106,6 +109,12 @@ fn handle_keypress(editor: &mut Editor, key: KeyCode) {
         KeyCode::Char('V') if editor.mode == Modes::Normal => editor.mode = Modes::Visual,
 
         // Vim movement keys
+        KeyCode::Backspace if editor.mode == Modes::Normal => {
+            editor.cursor_x = editor.cursor_x.saturating_sub(1)
+        }
+        KeyCode::Enter if editor.mode == Modes::Normal => {
+            editor.cursor_y = editor.cursor_y.saturating_add(1)
+        }
         KeyCode::Char('0') if editor.mode == Modes::Normal => editor.cursor_x = 0,
         KeyCode::Char('h') if pending_g && editor.mode == Modes::Normal => {
             editor.cursor_x = editor
@@ -138,6 +147,10 @@ fn handle_keypress(editor: &mut Editor, key: KeyCode) {
         KeyCode::Char('G') if editor.mode == Modes::Normal => {
             editor.cursor_y = editor.text_rows.len().saturating_sub(1)
         }
+        KeyCode::Char('M') if editor.mode == Modes::Normal => {
+            editor.cursor_y = editor.row_offset + editor.rows as usize / 2;
+        }
+        // o and O
         KeyCode::Char('h') if editor.mode == Modes::Normal => {
             editor.cursor_x = editor.cursor_x.saturating_sub(1)
         }
@@ -165,6 +178,8 @@ fn handle_keypress(editor: &mut Editor, key: KeyCode) {
         // INSERT MODE
         // ----------------------
         KeyCode::Char(char) if editor.mode == Modes::Insert => editor.insert_char(char),
+        // TODO: this currently only works if the file is empty
+        // if this is done on a file with text cursor moves down and adds lines to end of file
         KeyCode::Enter if editor.mode == Modes::Insert => {
             editor.text_rows.push(EditorRow::new(String::new()));
             editor.cursor_y += 1;
@@ -488,6 +503,22 @@ mod tests {
         handle_keypress(&mut editor, KeyCode::Char('l'));
         assert_eq!(editor.cursor_x, editor.text_rows[0].chars.len() - 1);
         assert_eq!(editor.cursor_y, 0);
+    }
+
+    #[test]
+    fn m_to_middle_of_screen() {
+        let mut editor = build_app();
+        editor.rows = 10;
+        editor.open_file(path::Path::new("test.txt")).unwrap();
+        assert_eq!(editor.cursor_x, 0);
+        assert_eq!(editor.cursor_y, 0);
+
+        handle_keypress(&mut editor, KeyCode::Char('M'));
+        assert_eq!(editor.cursor_y, 5);
+
+        editor.cursor_x = 10;
+        handle_keypress(&mut editor, KeyCode::Char('M'));
+        assert_eq!(editor.cursor_y, 5);
     }
 
     #[test]
