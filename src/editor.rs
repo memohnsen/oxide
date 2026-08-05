@@ -71,8 +71,7 @@ impl Editor {
 
     pub fn insert_char(&mut self, char: char) {
         if self.text_rows.is_empty() {
-            self.text_rows
-                .append(&mut vec![EditorRow::new(String::new())]);
+            self.text_rows.push(EditorRow::new(String::new()));
         }
 
         let row = self.cursor_y;

@@ -31,7 +31,7 @@ fn handle_keypress(editor: &mut Editor, key: KeyCode) {
 
         // Arrow keys
         KeyCode::Left => editor.cursor_x = editor.cursor_x.saturating_sub(1),
-        KeyCode::Right if editor.cursor_x + 1 < editor.current_row_len() => {
+        KeyCode::Right => {
             editor.cursor_x = editor.cursor_x.saturating_add(1);
         }
         KeyCode::Up => editor.cursor_y = editor.cursor_y.saturating_sub(1),
@@ -39,27 +39,46 @@ fn handle_keypress(editor: &mut Editor, key: KeyCode) {
             editor.cursor_y += 1;
         }
 
-        // Modes
         KeyCode::Esc => editor.mode = Modes::Normal,
-        KeyCode::Char('a') if editor.mode == Modes::Normal => editor.mode = Modes::Insert,
-        KeyCode::Char('A') if editor.mode == Modes::Normal => editor.mode = Modes::Insert,
-        KeyCode::Char('i') if editor.mode == Modes::Normal => editor.mode = Modes::Insert,
-        KeyCode::Char('I') if editor.mode == Modes::Normal => editor.mode = Modes::Insert,
-        KeyCode::Char('r') if editor.mode == Modes::Normal => editor.mode = Modes::Replace,
-        KeyCode::Char('R') if editor.mode == Modes::Normal => editor.mode = Modes::Replace,
-        KeyCode::Char('v') if editor.mode == Modes::Normal => editor.mode = Modes::Visual,
-        KeyCode::Char('V') if editor.mode == Modes::Normal => editor.mode = Modes::Visual,
 
         // ----------------------
         // NORMAL MODE
         // ----------------------
 
+        // Modes
+        KeyCode::Char('a') if editor.mode == Modes::Normal => {
+            editor.cursor_x += 1;
+            editor.mode = Modes::Insert;
+        }
+        KeyCode::Char('A') if editor.mode == Modes::Normal => {
+            editor.cursor_x = editor.current_row_len();
+            editor.mode = Modes::Insert;
+        }
+        KeyCode::Char('i') if editor.mode == Modes::Normal => {
+            editor.mode = Modes::Insert;
+        }
+        KeyCode::Char('I') if editor.mode == Modes::Normal => {
+            editor.cursor_x = editor.text_rows[editor.cursor_y]
+                .chars
+                .chars()
+                .position(|ch| !ch.is_whitespace())
+                .unwrap_or(0);
+            editor.mode = Modes::Insert;
+        }
+        KeyCode::Char('r') if editor.mode == Modes::Normal => editor.mode = Modes::Replace,
+        KeyCode::Char('R') if editor.mode == Modes::Normal => editor.mode = Modes::Replace,
+        KeyCode::Char('v') if editor.mode == Modes::Normal => editor.mode = Modes::Visual,
+        KeyCode::Char('V') if editor.mode == Modes::Normal => editor.mode = Modes::Visual,
+
         // Move to start of row
         KeyCode::Char('0') if editor.mode == Modes::Normal => editor.cursor_x = 0,
         // Move to first char in row
-        // TODO: adjust this so it moves to the first char rather than start of row
         KeyCode::Char('h') if pending_g && editor.mode == Modes::Normal => {
-            editor.cursor_x = 0;
+            editor.cursor_x = editor.text_rows[editor.cursor_y]
+                .chars
+                .chars()
+                .position(|ch| !ch.is_whitespace())
+                .unwrap_or(0);
         }
         // Move to first row in file
         KeyCode::Char('g') if pending_g && editor.mode == Modes::Normal => editor.cursor_y = 0,
@@ -93,17 +112,25 @@ fn handle_keypress(editor: &mut Editor, key: KeyCode) {
         {
             editor.cursor_y += 1;
         }
-
         // KeyCode::Char('b')
         // KeyCode::Char('B')
         // KeyCode::Char('w')
         // KeyCode::Char('W')
         // KeyCode::Char('e')
         // KeyCode::Char('E')
+
+        // ----------------------
+        // INSERT MODE
+        // ----------------------
+        KeyCode::Char(char) if editor.mode == Modes::Insert => editor.insert_char(char),
         _ => {}
     }
 
-    let line_length = editor.current_row_len().saturating_sub(1);
+    let line_length = if editor.mode != Modes::Insert {
+        editor.current_row_len().saturating_sub(1)
+    } else {
+        editor.current_row_len()
+    };
     editor.cursor_x = editor.cursor_x.min(line_length);
 }
 
@@ -393,5 +420,34 @@ mod tests {
         handle_keypress(&mut editor, KeyCode::Char('l'));
         assert_eq!(editor.cursor_x, editor.text_rows[0].chars.len() - 1);
         assert_eq!(editor.cursor_y, 0);
+    }
+
+    #[test]
+    fn text_insertion() {
+        let mut editor = build_app();
+        handle_keypress(&mut editor, KeyCode::Char('i'));
+        assert_eq!(editor.mode, Modes::Insert);
+        handle_keypress(&mut editor, KeyCode::Char('a'));
+        assert!(!editor.text_rows.is_empty());
+        assert_eq!(editor.text_rows.len(), 1);
+        assert_eq!(editor.text_rows[0].chars, "a");
+
+        handle_keypress(&mut editor, KeyCode::Esc);
+        assert_eq!(editor.mode, Modes::Normal);
+        handle_keypress(&mut editor, KeyCode::Char('h'));
+        handle_keypress(&mut editor, KeyCode::Char('i'));
+        assert_eq!(editor.mode, Modes::Insert);
+        handle_keypress(&mut editor, KeyCode::Char('h'));
+        assert_eq!(editor.text_rows.len(), 1);
+        assert_eq!(editor.text_rows[0].chars, "ha");
+
+        handle_keypress(&mut editor, KeyCode::Esc);
+        assert_eq!(editor.mode, Modes::Normal);
+        handle_keypress(&mut editor, KeyCode::Right);
+        handle_keypress(&mut editor, KeyCode::Char('a'));
+        assert_eq!(editor.mode, Modes::Insert);
+        handle_keypress(&mut editor, KeyCode::Char('h'));
+        assert_eq!(editor.text_rows.len(), 1);
+        assert_eq!(editor.text_rows[0].chars, "hah");
     }
 }
