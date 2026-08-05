@@ -1,6 +1,9 @@
 use crossterm::event::{self, Event, KeyCode, KeyModifiers};
 
-use crate::{editor::Editor, modes::Modes};
+use crate::{
+    editor::{Editor, EditorRow},
+    modes::Modes,
+};
 
 pub fn process_keypress(editor: &mut Editor) -> bool {
     let char = event::read().expect("Error: Unable to read the keypresses from your device");
@@ -19,6 +22,33 @@ pub fn process_keypress(editor: &mut Editor) -> bool {
     }
 }
 
+/// #Available keybindings
+///
+/// ##All modes
+/// - arrow keys to move through text
+/// - ESC to return to normal mode
+/// - Ctrl-q to quit
+///
+/// ##Normal Mode
+///
+/// ###Movement
+/// - hkjl to move through text
+/// - $ or gl to move to last char in row
+/// - 0 to move to start of the row
+/// - gh / _ to move to first char in row
+/// - gg to move to first row
+/// - G to move to last row
+///
+/// ###Text Insertion
+/// - a to enter insert mode to the right of the cursor
+/// - A to enter insert mode at the end of the row
+/// - i to enter insert mode to the left of the cursor
+/// - I to enter insert mode to the left of the first char in the row
+///
+/// ###Modes
+/// - r / R to enter replace mode ( does nothing currently )
+/// - v / V to enter visual mode ( does nothing currently )
+///
 fn handle_keypress(editor: &mut Editor, key: KeyCode) {
     // get a local state of pending_g so we don't have to reset it on every branch
     let pending_g = editor.pending_g;
@@ -45,7 +75,7 @@ fn handle_keypress(editor: &mut Editor, key: KeyCode) {
         // NORMAL MODE
         // ----------------------
 
-        // Modes
+        // Vim insertions
         KeyCode::Char('a') if editor.mode == Modes::Normal => {
             editor.cursor_x += 1;
             editor.mode = Modes::Insert;
@@ -58,44 +88,56 @@ fn handle_keypress(editor: &mut Editor, key: KeyCode) {
             editor.mode = Modes::Insert;
         }
         KeyCode::Char('I') if editor.mode == Modes::Normal => {
-            editor.cursor_x = editor.text_rows[editor.cursor_y]
+            editor.cursor_x = editor
+                .text_rows
+                .get(editor.cursor_y)
+                .unwrap_or(&EditorRow::new(String::new()))
                 .chars
                 .chars()
                 .position(|ch| !ch.is_whitespace())
                 .unwrap_or(0);
             editor.mode = Modes::Insert;
         }
+
+        // Modes
         KeyCode::Char('r') if editor.mode == Modes::Normal => editor.mode = Modes::Replace,
         KeyCode::Char('R') if editor.mode == Modes::Normal => editor.mode = Modes::Replace,
         KeyCode::Char('v') if editor.mode == Modes::Normal => editor.mode = Modes::Visual,
         KeyCode::Char('V') if editor.mode == Modes::Normal => editor.mode = Modes::Visual,
 
-        // Move to start of row
+        // Vim movement keys
         KeyCode::Char('0') if editor.mode == Modes::Normal => editor.cursor_x = 0,
-        // Move to first char in row
         KeyCode::Char('h') if pending_g && editor.mode == Modes::Normal => {
-            editor.cursor_x = editor.text_rows[editor.cursor_y]
+            editor.cursor_x = editor
+                .text_rows
+                .get(editor.cursor_y)
+                .unwrap_or(&EditorRow::new(String::new()))
                 .chars
                 .chars()
                 .position(|ch| !ch.is_whitespace())
                 .unwrap_or(0);
         }
-        // Move to first row in file
+        KeyCode::Char('_') if editor.mode == Modes::Normal => {
+            editor.cursor_x = editor
+                .text_rows
+                .get(editor.cursor_y)
+                .unwrap_or(&EditorRow::new(String::new()))
+                .chars
+                .chars()
+                .position(|ch| !ch.is_whitespace())
+                .unwrap_or(0);
+        }
         KeyCode::Char('g') if pending_g && editor.mode == Modes::Normal => editor.cursor_y = 0,
         KeyCode::Char('g') if editor.mode == Modes::Normal => editor.pending_g = true,
-        // Move to last char in row
         KeyCode::Char('$') if editor.mode == Modes::Normal => {
             editor.cursor_x = editor.current_row_len().saturating_sub(1)
         }
         KeyCode::Char('l') if pending_g && editor.mode == Modes::Normal => {
             editor.cursor_x = editor.current_row_len().saturating_sub(1)
         }
-        // Move to last row in file
         KeyCode::Char('G') if editor.mode == Modes::Normal => {
             editor.cursor_y = editor.text_rows.len().saturating_sub(1)
         }
-
-        // Vim keybindings to move through the file
         KeyCode::Char('h') if editor.mode == Modes::Normal => {
             editor.cursor_x = editor.cursor_x.saturating_sub(1)
         }
@@ -123,6 +165,10 @@ fn handle_keypress(editor: &mut Editor, key: KeyCode) {
         // INSERT MODE
         // ----------------------
         KeyCode::Char(char) if editor.mode == Modes::Insert => editor.insert_char(char),
+        KeyCode::Enter if editor.mode == Modes::Insert => {
+            editor.text_rows.push(EditorRow::new(String::new()));
+            editor.cursor_y += 1;
+        }
         _ => {}
     }
 
@@ -137,7 +183,7 @@ fn handle_keypress(editor: &mut Editor, key: KeyCode) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::modes::Modes;
+    use crate::{editor::EditorRow, modes::Modes};
     use std::path;
 
     fn build_app() -> Editor {
@@ -378,7 +424,7 @@ mod tests {
         assert_eq!(editor.cursor_x, 0);
         assert_eq!(editor.cursor_y, 10);
 
-        handle_keypress(&mut editor, KeyCode::Char('h'));
+        handle_keypress(&mut editor, KeyCode::Char('u'));
         assert_eq!(editor.cursor_x, 0);
         assert_eq!(editor.cursor_y, 10);
 
@@ -390,17 +436,39 @@ mod tests {
     #[test]
     fn goes_to_first_char() {
         let mut editor = build_app();
-        editor.open_file(path::Path::new("test.txt")).unwrap();
-        editor.cursor_x = 5;
-        assert_eq!(editor.cursor_x, 5);
+        editor.text_rows = vec![EditorRow::new("Hello".to_string())];
+        editor.cursor_x = 3;
+
+        editor.pending_g = true;
+        handle_keypress(&mut editor, KeyCode::Char('h'));
+        assert_eq!(editor.cursor_x, 0);
         assert_eq!(editor.cursor_y, 0);
 
+        editor.text_rows[0] = EditorRow::new("   Hello".to_string());
+        editor.cursor_x = 3;
+
+        editor.pending_g = true;
+        handle_keypress(&mut editor, KeyCode::Char('h'));
+        assert_eq!(editor.cursor_x, 3);
+        assert_eq!(editor.cursor_y, 0);
+    }
+
+    #[test]
+    fn goes_to_start_of_line() {
+        let mut editor = build_app();
+        editor.text_rows = vec![EditorRow::new("Hello".to_string())];
+        editor.cursor_x = 3;
+
+        editor.pending_g = true;
         handle_keypress(&mut editor, KeyCode::Char('0'));
         assert_eq!(editor.cursor_x, 0);
         assert_eq!(editor.cursor_y, 0);
 
+        editor.text_rows[0] = EditorRow::new("   Hello".to_string());
+        editor.cursor_x = 3;
+
         editor.pending_g = true;
-        handle_keypress(&mut editor, KeyCode::Char('h'));
+        handle_keypress(&mut editor, KeyCode::Char('0'));
         assert_eq!(editor.cursor_x, 0);
         assert_eq!(editor.cursor_y, 0);
     }
@@ -419,6 +487,40 @@ mod tests {
         editor.pending_g = true;
         handle_keypress(&mut editor, KeyCode::Char('l'));
         assert_eq!(editor.cursor_x, editor.text_rows[0].chars.len() - 1);
+        assert_eq!(editor.cursor_y, 0);
+    }
+
+    #[test]
+    fn text_insertion_with_vim_motions() {
+        let mut editor = build_app();
+        editor.text_rows = vec![EditorRow::new("Hello".to_string())];
+        assert_eq!(editor.cursor_x, 0);
+        assert_eq!(editor.cursor_y, 0);
+
+        handle_keypress(&mut editor, KeyCode::Char('i'));
+        assert_eq!(editor.mode, Modes::Insert);
+        assert_eq!(editor.cursor_x, 0);
+        assert_eq!(editor.cursor_y, 0);
+
+        handle_keypress(&mut editor, KeyCode::Esc);
+        assert_eq!(editor.mode, Modes::Normal);
+        handle_keypress(&mut editor, KeyCode::Char('a'));
+        assert_eq!(editor.mode, Modes::Insert);
+        assert_eq!(editor.cursor_x, 1);
+        assert_eq!(editor.cursor_y, 0);
+
+        handle_keypress(&mut editor, KeyCode::Esc);
+        assert_eq!(editor.mode, Modes::Normal);
+        handle_keypress(&mut editor, KeyCode::Char('A'));
+        assert_eq!(editor.mode, Modes::Insert);
+        assert_eq!(editor.cursor_x, editor.text_rows[0].chars.len());
+        assert_eq!(editor.cursor_y, 0);
+
+        handle_keypress(&mut editor, KeyCode::Esc);
+        assert_eq!(editor.mode, Modes::Normal);
+        handle_keypress(&mut editor, KeyCode::Char('I'));
+        assert_eq!(editor.mode, Modes::Insert);
+        assert_eq!(editor.cursor_x, 0);
         assert_eq!(editor.cursor_y, 0);
     }
 
